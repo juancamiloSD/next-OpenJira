@@ -24,15 +24,8 @@ export const EntriesProvider: FC<Props> = ({ children }) => {
     const { enqueueSnackbar } = useSnackbar()
 
     const addNewEntry = async ( description: string ) => {
-        // const newEntry: Entry = {
-        //     _id: uuidv4(),
-        //     description,
-        //     createAt: Date.now(),
-        //     status: 'pending',
-        // }
 
         const { data } = await entriesApi.post<Entry>('/entries', { description })
-        // dispatch({ type: '[Entry] - Add-Entry', payload: newEntry })
         dispatch({ type: '[Entry] - Add-Entry', payload: data })
 
     }

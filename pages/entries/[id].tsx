@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { dbEntries } from '@/database';
 import { EntriesContext } from '@/context/entries';
 import { dateFunctions } from '@/utils';
+import { useRouter } from 'next/router';
 
 const validStatus: EntryStatus[] = ['pending', 'in-progress', 'finished']
 
@@ -24,6 +25,7 @@ export const EntryPage: FC<Props> = ({ entry }) => {
     const [inputValue, setInputValue] = useState(entry.description)
     const [status, setStatus] = useState<EntryStatus>(entry.status)
     const [touched, setTouched] = useState(false)
+    const router = useRouter();    ///// esto modificado
 
     const isNotValid = useMemo(() => inputValue.length <= 0 && touched, [inputValue, touched])
 
@@ -36,6 +38,11 @@ export const EntryPage: FC<Props> = ({ entry }) => {
         setStatus( event.target.value as EntryStatus )
     }
     
+    const onDelete = () => {    ///// esto modificado
+        deleteEntry( entry, true );
+        router.push('/')
+    }
+
     const onSave = () => {
         if( inputValue.trim().length === 0 ) return
 
@@ -111,7 +118,7 @@ export const EntryPage: FC<Props> = ({ entry }) => {
             </Grid>
         </Grid>
         <IconButton 
-            onClick={ deleteEntry }
+            onClick={ onDelete }
             sx={{ 
                 position: 'fixed',
                 bottom: 30,
