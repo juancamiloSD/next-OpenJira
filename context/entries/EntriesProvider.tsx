@@ -1,33 +1,17 @@
-import { FC, ReactNode, useReducer } from "react"
+import { FC, ReactNode, useEffect, useReducer } from "react"
+import { useSnackbar } from 'notistack'
+
 import { EntriesContext, entriesReducer } from "./"
 import { Entry } from "@/interfaces"
-import { v4 as uuidv4 } from 'uuid'
+// import { v4 as uuidv4 } from 'uuid'
+import { entriesApi } from "@/apis"
 
 export interface EntriesState {
     entries: Entry[]
 }
 
 const Entries_INITIAL_STATE: EntriesState = {
-    entries: [
-        {
-            _id: uuidv4(),
-            description: 'Pendiente: lorem ipsum dolor duis elit sunt qui dolor laborum veniam ea laboris quis consequat.',
-            status: 'pending',
-            createAt: Date.now()
-        },
-        {
-            _id: uuidv4(),
-            description: 'En Progreso: lorem ipsum dolor duis elit sunt qui dolor laborum veniam ea laboris quis consequat2.',
-            status: 'in-progress',
-            createAt: Date.now() - 1000000
-        },
-        {
-            _id: uuidv4(),
-            description: 'Finalizado: lorem ipsum dolor duis elit sunt qui dolor laborum veniam ea laboris quis consequat3.',
-            status: 'finished',
-            createAt: Date.now() - 100000
-        }
-    ]
+    entries: []
 }
 
 interface Props {
@@ -37,23 +21,72 @@ interface Props {
 export const EntriesProvider: FC<Props> = ({ children }) => {
 
     const [state, dispatch] = useReducer(entriesReducer, Entries_INITIAL_STATE)
+    const { enqueueSnackbar } = useSnackbar()
 
-    const addNewEntry = ( description: string ) => {
-        const newEntry: Entry = {
-            _id: uuidv4(),
-            description,
-            createAt: Date.now(),
-            status: 'pending',
+    const addNewEntry = async ( description: string ) => {
+        // const newEntry: Entry = {
+        //     _id: uuidv4(),
+        //     description,
+        //     createAt: Date.now(),
+        //     status: 'pending',
+        // }
+
+        const { data } = await entriesApi.post<Entry>('/entries', { description })
+        // dispatch({ type: '[Entry] - Add-Entry', payload: newEntry })
+        dispatch({ type: '[Entry] - Add-Entry', payload: data })
+
+    }
+
+    const updateEntry = async ({ _id, description, status }: Entry, showSnackbar = false) => {
+        try {
+            const { data } = await entriesApi.put<Entry>(`/entries/${ _id }`, { description, status } )
+            dispatch({ type: '[Entry] - Update-Entry', payload: data })
+            if( showSnackbar )
+                enqueueSnackbar('Entrada actualizada', {
+                    variant: 'success',
+                    autoHideDuration: 1500,
+                    anchorOrigin: {
+                        vertical: 'top',
+                        horizontal: 'right'
+                    }
+                })
+            
+        } catch (error) {
+            console.log({ error })
         }
-        dispatch({ type: '[Entry] - Add-Entry', payload: newEntry })
+
     }
 
-    const updateEntry = (entry: Entry) => {
-        dispatch({ type: '[Entry] - Update-Entry', payload: entry })
+    const refreshEntries = async() => {
+        const { data } = await entriesApi.get<Entry[]>('/entries')
+        dispatch({ type: "[Entry] - Refresh-Data", payload: data })
     }
+
+    const deleteEntry = async({ _id }: Entry, showSnackbar = false) => {
+        try {
+            const { data } = await entriesApi.delete<Entry>(`/entries/${ _id }`)
+            dispatch({ type: '[Entry] - Delete-Entry', payload: data })
+            if( showSnackbar )
+                enqueueSnackbar('Entrada actualizada', {
+                    variant: 'success',
+                    autoHideDuration: 1500,
+                    anchorOrigin: {
+                        vertical: 'top',
+                        horizontal: 'right'
+                    }
+                })
+        } catch (error) {
+            console.log({ error })
+        }
+    }
+
+    useEffect(() => {
+        refreshEntries()
+    }, [])
+    
 
     return (
-        <EntriesContext.Provider value={{ ...state, addNewEntry, updateEntry }}>
+        <EntriesContext.Provider value={{ ...state, addNewEntry, updateEntry, deleteEntry }}>
             { children }
         </EntriesContext.Provider>
     )
